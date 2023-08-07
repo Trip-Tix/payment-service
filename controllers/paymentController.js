@@ -52,7 +52,7 @@ const paymentInit = (req, res) => {
         product_category: 'Electronic',
         product_profile: 'general',
         cus_name: 'Customer Name',
-        cus_email: '',
+        cus_email: 'mahbubzeeon@gmail.com',
         cus_add1: 'Dhaka',
         cus_add2: 'Dhaka',
         cus_city: 'Dhaka',
