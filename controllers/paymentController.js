@@ -114,6 +114,5 @@ const paymentSuccess = async (req, res) => {
 
 module.exports = {
     paymentInit,
-    paymentSuccess,
-    paymentIpn
+    paymentSuccess
 }

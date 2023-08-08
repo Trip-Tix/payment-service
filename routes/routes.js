@@ -8,6 +8,4 @@ router.get('/paymentInit', paymentController.paymentInit);
 
 router.post('/paymentSuccess', bodyParser, paymentController.paymentSuccess);
 
-router.post('/paymentIpn', bodyParser, paymentController.paymentIpn);
-
 module.exports = router;
