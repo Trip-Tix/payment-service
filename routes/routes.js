@@ -8,10 +8,6 @@ router.get('/paymentInit', paymentController.paymentInit);
 
 router.post('/paymentSuccess', bodyParser, paymentController.paymentSuccess);
 
-router.post('/paymentFail', bodyParser, paymentController.paymentFail);
-
-router.post('/paymentCancel', bodyParser, paymentController.paymentCancel);
-
 router.post('/paymentIpn', bodyParser, paymentController.paymentIpn);
 
 module.exports = router;

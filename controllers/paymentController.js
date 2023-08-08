@@ -1,6 +1,7 @@
+const express = require('express');
+const SSLCommerzPayment = require("sslcommerz").SslCommerzPayment;
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-const SSLCommerzPayment = require('sslcommerz-lts')
 
 dotenv.config();
 
@@ -38,15 +39,15 @@ pool.connect((err, client, release) => {
 });
 
 //sslcommerz init
-const paymentInit = (req, res) => {
+const paymentInit = async (req, res) => {
     const data = {
         total_amount: 100,
         currency: 'BDT',
         tran_id: 'REF123', // use unique tran_id for each api call
-        success_url: 'http://localhost:5005/success',
+        success_url: 'http://localhost:5005/paymentSuccess',
         fail_url: 'http://localhost:5005/fail',
         cancel_url: 'http://localhost:5005/cancel',
-        ipn_url: 'http://localhost:5005/ipn',
+        ipn_url: 'http://localhost:5005/paymentIpn',
         shipping_method: 'Courier',
         product_name: 'Computer.',
         product_category: 'Electronic',
@@ -73,71 +74,46 @@ const paymentInit = (req, res) => {
     sslcz.init(data).then(apiResponse => {
         // Redirect the user to payment gateway
         let GatewayPageURL = apiResponse.GatewayPageURL
-        res.redirect(GatewayPageURL)
         console.log('Redirecting to: ', apiResponse)
+        return res.status(200).redirect(GatewayPageURL)
     });
 }
 
 //sslcommerz success
-const paymentSuccess = (req, res) => {
+const paymentSuccess = async (req, res) => {
     const data = req.body;
-    const validation = sslcommerz.validation(data);
-    if (validation.status === 'VALID' || validation.status === 'VALIDATED') {
-        // Payment Validated Successfully
-        // Add your database operation here.
-        res.send('Payment Validated Successfully');
-    } else {
-        // Invalid Payment
-        res.send('Invalid Payment');
-    }
+    const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
+    const validation = ssl.validate(data);
+    validation.then(validation => {
+        console.log('Validation success');
+        console.log(validation);
+    }).catch(error => {
+        console.log(error);
+    });
+    return res.status(200).json({
+        status: 'success',
+        message: 'Payment Success',
+        data: req.body
+    });
 }
 
-//sslcommerz fail
-const paymentFail = (req, res) => {
-    const data = req.body;
-    const validation = sslcommerz.validation(data);
-    if (validation.status === 'VALID' || validation.status === 'VALIDATED') {
-        // Payment Validated Successfully
-        // Add your database operation here.
-        res.send('Payment Validated Successfully');
-    } else {
-        // Invalid Payment
-        res.send('Invalid Payment');
-    }
-}
-
-//sslcommerz cancel
-const paymentCancel = (req, res) => {
-    const data = req.body;
-    const validation = sslcommerz.validation(data);
-    if (validation.status === 'VALID' || validation.status === 'VALIDATED') {
-        // Payment Validated Successfully
-        // Add your database operation here.
-        res.send('Payment Validated Successfully');
-    } else {
-        // Invalid Payment
-        res.send('Invalid Payment');
-    }
-}
-
-//sslcommerz ipn
-const paymentIpn = (req, res) => {
-    const data = req.body;
-    const validation = sslcommerz.validation(data);
-    if (validation.status === 'VALID' || validation.status === 'VALIDATED') {
-        // Payment Validated Successfully
-        // Add your database operation here.
-        res.send('Payment Validated Successfully');
-    } else {
-        // Invalid Payment
-        res.send('Invalid Payment');
-    }
-}
+// //sslcommerz ipn -- lage na
+// const paymentIpn = async (req, res) => {
+//     const data = req.body;
+//     console.log('IPN data');
+//     console.log(data);
+//     ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
+//     const validation = ssl.validate(data);
+//     validation.then(validation => {
+//         console.log('IPN validation');
+//         console.log(validation);
+//     }).catch(error => {
+//         console.log(error);
+//     });
+// }
 
 module.exports = {
     paymentInit,
     paymentSuccess,
-    paymentFail,
-    paymentCancel,
     paymentIpn
 }
