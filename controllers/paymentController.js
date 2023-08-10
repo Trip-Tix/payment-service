@@ -1,4 +1,3 @@
-const express = require('express');
 const SSLCommerzPayment = require("sslcommerz").SslCommerzPayment;
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
