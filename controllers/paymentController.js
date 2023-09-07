@@ -11,13 +11,10 @@ const mainUrl = process.env.MAINURL
 
 //sslcommerz init
 const paymentInit = async (req, res) => {
-    const { busScheduleId, userId, passengerInfo, totalFare, numberOfTickets } = req.body;
+    const { busScheduleId, userId, passengerInfo, totalFare, numberOfTickets, ticketId } = req.body;
 
     // Generate unique transaction ID of 20 characters length mixed with letters and numbers
     const transactionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-    // Generate unique ticket ID of 15 characters length with numbers only
-    const ticketId = Math.random().toString().substring(2, 17);
 
     // Get today's date
     const today = new Date();
@@ -33,7 +30,7 @@ const paymentInit = async (req, res) => {
         total_amount: totalFare,
         currency: 'BDT',
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `${mainUrl}/paymentSuccess`,
+        success_url: `${mainUrl}/paymentSuccess\\${busScheduleId}\\${ticketId}`,
         fail_url: `${mainUrl}/paymentFail`,
         cancel_url: `${mainUrl}/cancel`,
         ipn_url: `${mainUrl}/paymentIpn`,
@@ -90,6 +87,13 @@ const paymentInit = async (req, res) => {
 
 //sslcommerz success
 const paymentSuccess = async (req, res) => {
+
+    // Get ticket id and bus schedule id from url using split
+    const url = req.url;
+    const urlArray = url.split('\\');
+    const busScheduleId = urlArray[1];
+    const ticketId = urlArray[2];
+
     const data = req.body;
     const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
     const validation = ssl.validate(data);
@@ -117,6 +121,15 @@ const paymentSuccess = async (req, res) => {
         }
         console.log('Ticket info updated to database');
     });
+
+    // Update bus schedule info
+    const updateBusScheduleQuery = {
+        text: `UPDATE bus_schedule_seat_info 
+        SET booked_status = 2 
+        WHERE bus_schedule_id = $1 
+        AND ticket_id = $2`,
+        values: [busScheduleId, ticketId]
+    }
     return res.status(200).json({
         status: 'success',
         message: 'Payment Success',
@@ -141,21 +154,6 @@ const paymentFail = async (req, res) => {
         data: req.body
     });
 }
-
-// //sslcommerz ipn -- lage na
-// const paymentIpn = async (req, res) => {
-//     const data = req.body;
-//     console.log('IPN data');
-//     console.log(data);
-//     ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
-//     const validation = ssl.validate(data);
-//     validation.then(validation => {
-//         console.log('IPN validation');
-//         console.log(validation);
-//     }).catch(error => {
-//         console.log(error);
-//     });
-// }
 
 module.exports = {
     paymentInit,
