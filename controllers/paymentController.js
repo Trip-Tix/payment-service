@@ -1,52 +1,42 @@
 const SSLCommerzPayment = require("sslcommerz").SslCommerzPayment;
-const { Pool } = require('pg');
 const dotenv = require('dotenv');
-
+const busPool = require('../config/busDB');
 dotenv.config();
 
 const store_id = process.env.STOREID
 const store_passwd = process.env.STOREPASSWORD
 const is_live = false //true for live, false for sandbox
 
-const port = process.env.PORT;
-
-// Connect to Postgres
-const pool = new Pool({
-    host: process.env.PGHOST,
-    port: process.env.PGPORT,
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-    idleTimeoutMillis: 0,
-    connectionTimeoutMillis: 0,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-pool.connect((err, client, release) => {
-    if (err) {
-        return console.error('Error acquiring client', err.stack);
-    }
-    client.query('SELECT NOW()', (err, result) => {
-        release();
-        if (err) {
-            return console.error('Error executing query', err.stack);
-        }
-        console.log(`Connected to Postgres at ${result.rows[0].now}`);
-    });
-});
+const mainUrl = process.env.MAINURL
 
 //sslcommerz init
 const paymentInit = async (req, res) => {
+    const { busScheduleId, userId, passengerInfo, totalFare, numberOfTickets } = req.body;
+
+    // Generate unique transaction ID of 20 characters length mixed with letters and numbers
+    const transactionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    // Generate unique ticket ID of 15 characters length with numbers only
+    const ticketId = Math.random().toString().substring(2, 17);
+
+    // Get today's date
+    const today = new Date();
+    const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+
+    // Get current time
+    const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+
+    // Get current date and time
+    const dateTime = date + ' ' + time;
+
     const data = {
-        total_amount: 100,
+        total_amount: totalFare,
         currency: 'BDT',
-        tran_id: 'REF123', // use unique tran_id for each api call
-        success_url: 'http://localhost:5005/paymentSuccess',
-        fail_url: 'http://localhost:5005/fail',
-        cancel_url: 'http://localhost:5005/cancel',
-        ipn_url: 'http://localhost:5005/paymentIpn',
+        tran_id: transactionId, // use unique tran_id for each api call
+        success_url: `${mainUrl}/paymentSuccess`,
+        fail_url: `${mainUrl}/paymentFail`,
+        cancel_url: `${mainUrl}/cancel`,
+        ipn_url: `${mainUrl}/paymentIpn`,
         shipping_method: 'Courier',
         product_name: 'Computer.',
         product_category: 'Electronic',
@@ -72,6 +62,26 @@ const paymentInit = async (req, res) => {
     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
     sslcz.init(data).then(apiResponse => {
         // Redirect the user to payment gateway
+
+        //save transaction info to database
+        const insertIntoTicketInfoQuery = {
+            text: `INSERT INTO ticket_info (ticket_id, user_id, bus_schedule_id, 
+                number_of_tickets, total_fare, passenger_info, transaction_id, date) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            values: [ticketId, userId, busScheduleId, numberOfTickets, totalFare, passengerInfo, transactionId, dateTime]
+        }
+        busPool.query(insertIntoTicketInfoQuery, (err, result) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).json({
+                    status: 'fail',
+                    message: 'Database error',
+                    data: err
+                });
+            }
+            console.log('Ticket info saved to database');
+        });
+        
         let GatewayPageURL = apiResponse.GatewayPageURL
         console.log('Redirecting to: ', apiResponse)
         return res.status(200).redirect(GatewayPageURL)
@@ -89,9 +99,45 @@ const paymentSuccess = async (req, res) => {
     }).catch(error => {
         console.log(error);
     });
+
+    const transactionId = data.tran_id;
+    const paymentMedium = data.card_issuer;
+    const updateTicketInfoQuery = {
+        text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2 WHERE transaction_id = $3`,
+        values: [paymentMedium, 1, transactionId]
+    }
+    busPool.query(updateTicketInfoQuery, (err, result) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).json({
+                status: 'fail',
+                message: 'Database error',
+                data: err
+            });
+        }
+        console.log('Ticket info updated to database');
+    });
     return res.status(200).json({
         status: 'success',
         message: 'Payment Success',
+        data: req.body
+    });
+}
+
+//sslcommerz fail
+const paymentFail = async (req, res) => {
+    const data = req.body;
+    const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
+    const validation = ssl.validate(data);
+    validation.then(validation => {
+        console.log('Validation fail');
+        console.log(validation);
+    }).catch(error => {
+        console.log(error);
+    });
+    return res.status(200).json({
+        status: 'fail',
+        message: 'Payment Fail',
         data: req.body
     });
 }
@@ -113,5 +159,7 @@ const paymentSuccess = async (req, res) => {
 
 module.exports = {
     paymentInit,
-    paymentSuccess
+    paymentSuccess,
+    paymentFail,
+
 }

@@ -4,8 +4,8 @@ const bodyParser = require('body-parser').json();
 
 const router = express.Router();
 
-router.get('/paymentInit', paymentController.paymentInit);
-
+router.post('/paymentInit', paymentController.paymentInit);
 router.post('/paymentSuccess', bodyParser, paymentController.paymentSuccess);
+router.post('/paymentFail', bodyParser, paymentController.paymentFail);
 
 module.exports = router;
