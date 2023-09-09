@@ -28,15 +28,15 @@ const paymentInit = async (req, res) => {
     let ticketsIds = "";
     let busScheduleIds = "";
     for (let i = 0; i < ticketInfo.length; i++) {
-        ticketsIds += ticketInfo[i].ticketId + '-';
-        busScheduleIds += ticketInfo[i].busScheduleId + '-';
+        ticketsIds += ticketInfo[i].ticketId + '_';
+        busScheduleIds += ticketInfo[i].busScheduleId + '_';
     }
 
     const data = {
         total_amount: grandTotalFare,
         currency: 'BDT',
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `${mainUrl}/paymentSuccess\\${busScheduleIds}\\${ticketsIds}`,
+        success_url: `http://localhost:5000/paymentSuccess/\\${busScheduleIds}/\\${ticketsIds}`,
         fail_url: `${mainUrl}/paymentFail`,
         cancel_url: `${mainUrl}/cancel`,
         ipn_url: `${mainUrl}/paymentIpn`,
@@ -63,51 +63,52 @@ const paymentInit = async (req, res) => {
         ship_country: 'Bangladesh',
     };
     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
-    sslcz.init(data).then(apiResponse => {
+    sslcz.init(data).then(async apiResponse => {
         // Redirect the user to payment gateway
 
+        busPool.query('BEGIN');
+
         //save transaction info to database
-        for (let i = 0; i < ticketInfo.length; i++) {
-            const ticketId = ticketInfo[i].ticketId;
-            const busScheduleId = ticketInfo[i].busScheduleId;
-            const numberOfTickets = ticketInfo[i].numberOfTickets;
-            const totalFare = ticketInfo[i].totalFare;
-            const passengerInfo = ticketInfo[i].passengerInfo;
-            const insertIntoTicketInfoQuery = {
-                text: `INSERT INTO ticket_info (ticket_id, user_id, bus_schedule_id, 
-                    number_of_tickets, total_fare, passenger_info, transaction_id, date) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                values: [ticketId, userId, busScheduleId, numberOfTickets, totalFare, passengerInfo, transactionId, dateTime]
-            }
-            busPool.query(insertIntoTicketInfoQuery, (err, result) => {
-                if (err) {
-                    console.log(err);
-                    return res.status(500).json({
-                        status: 'fail',
-                        message: 'Database error',
-                        data: err
-                    });
+        try {
+            for (let i = 0; i < ticketInfo.length; i++) {
+                const ticketId = ticketInfo[i].ticketId;
+                const busScheduleId = ticketInfo[i].busScheduleId;
+                const numberOfTickets = ticketInfo[i].numberOfTickets;
+                const totalFare = ticketInfo[i].totalFare;
+                const passengerInfo = ticketInfo[i].passengerIdArray;
+                const insertIntoTicketInfoQuery = {
+                    text: `INSERT INTO ticket_info (ticket_id, user_id, bus_schedule_id, 
+                        number_of_tickets, total_fare, passenger_info, transaction_id, date) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                    values: [ticketId, userId, busScheduleId, numberOfTickets, totalFare, passengerInfo, transactionId, dateTime]
                 }
-                console.log('Ticket info saved to database');
+                await busPool.query(insertIntoTicketInfoQuery);
+            }
+            
+            let GatewayPageURL = apiResponse.GatewayPageURL;
+            console.log('Redirecting to: ', apiResponse.GatewayPageURL);
+            busPool.query('COMMIT');
+            console.log('Transaction info saved to database');
+            return res.status(200).redirect(GatewayPageURL)
+        } catch(err) {
+            busPool.query('ROLLBACK');
+            console.log(err);
+            return res.status(500).json({
+                status: 'fail',
+                message: 'Database error',
+                data: err
             });
         }
-        
-        let GatewayPageURL = apiResponse.GatewayPageURL
-        console.log('Redirecting to: ', apiResponse)
-        return res.status(200).redirect(GatewayPageURL)
     });
 }
 
 //sslcommerz success
 const paymentSuccess = async (req, res) => {
 
-    // Get ticket id and bus schedule id from url using split
-    const url = req.url;
-    const urlArray = url.split('\\');
-    const busScheduleIds = urlArray[1];
-    const ticketIds = urlArray[2];
+    busPool.query('BEGIN');
 
     const data = req.body;
+    const { busScheduleIds, ticketIds } = req.body;
     const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
     const validation = ssl.validate(data);
     validation.then(validation => {
@@ -119,53 +120,47 @@ const paymentSuccess = async (req, res) => {
 
     const transactionId = data.tran_id;
     const paymentMedium = data.card_issuer;
-    const busScheduleIdArray = busScheduleIds.split('-');
-    const ticketIdArray = ticketIds.split('-');
-    for (let i = 0; i < ticketIdArray.length - 1; i++) {
-        const ticketId = ticketIdArray[i];
-        const busScheduleId = busScheduleIdArray[i];
-
-        const updateTicketInfoQuery = {
-            text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2 WHERE transaction_id = $3`,
-            values: [paymentMedium, 1, transactionId]
-        }
-        busPool.query(updateTicketInfoQuery, (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).json({
-                    status: 'fail',
-                    message: 'Database error',
-                    data: err
-                });
+    const busScheduleIdArray = busScheduleIds.split('_');
+    const ticketIdArray = ticketIds.split('_');
+    console.log(transactionId, paymentMedium, busScheduleIdArray, ticketIdArray)
+    try {
+        for (let i = 0; i < ticketIdArray.length - 1; i++) {
+            const ticketId = ticketIdArray[i];
+            const busScheduleId = busScheduleIdArray[i];
+    
+            const updateTicketInfoQuery = {
+                text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2 WHERE transaction_id = $3`,
+                values: [paymentMedium, 1, transactionId]
             }
+            await busPool.query(updateTicketInfoQuery);
             console.log('Ticket info updated to database');
-        });
-
-        // Update bus schedule info
-        const updateBusScheduleQuery = {
-            text: `UPDATE bus_schedule_seat_info 
-            SET booked_status = 2 
-            WHERE bus_schedule_id = $1 
-            AND ticket_id = $2`,
-            values: [busScheduleId, ticketId]
-        }
-        busPool.query(updateBusScheduleQuery, (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).json({
-                    status: 'fail',
-                    message: 'Database error',
-                    data: err
-                });
+    
+            // Update bus schedule info
+            const updateBusScheduleQuery = {
+                text: `UPDATE bus_schedule_seat_info 
+                SET booked_status = 2 
+                WHERE bus_schedule_id = $1 
+                AND ticket_id = $2`,
+                values: [busScheduleId, ticketId]
             }
+            await busPool.query(updateBusScheduleQuery);
             console.log('Bus schedule info updated to database');
+        }
+        busPool.query('COMMIT');
+        return res.status(200).json({
+            status: 'success',
+            message: 'Payment Success',
+            data: req.body
+        });
+    } catch (err) {
+        busPool.query('ROLLBACK');
+        console.log(err);
+        return res.status(500).json({
+            status: 'fail',
+            message: 'Database error',
+            data: err
         });
     }
-    return res.status(200).json({
-        status: 'success',
-        message: 'Payment Success',
-        data: req.body
-    });
 }
 
 //sslcommerz fail
