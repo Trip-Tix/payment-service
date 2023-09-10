@@ -120,7 +120,12 @@ const paymentInit = async (req, res) => {
             console.log('Redirecting to: ', apiResponse.GatewayPageURL);
             busPool.query('COMMIT');
             console.log('Transaction info saved to database');
-            return res.status(200).redirect(GatewayPageURL)
+            return res.status(200).json({
+                status: 'success',
+                message: 'Payment Init',
+                data: apiResponse,
+                url: GatewayPageURL
+                });
         } catch(err) {
             busPool.query('ROLLBACK');
             console.log(err);
@@ -385,6 +390,7 @@ const paymentSuccess = async (req, res) => {
         }
         busPool.query('COMMIT');
 
+        // return res.redirect(`http://localhost:6969/profile`);
 
         return res.status(200).json({
             status: 'success',
