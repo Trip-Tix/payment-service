@@ -390,13 +390,13 @@ const paymentSuccess = async (req, res) => {
         }
         busPool.query('COMMIT');
 
-        // return res.redirect(`http://localhost:6969/profile`);
+        return res.redirect(`http://localhost:6969/profile`);
 
-        return res.status(200).json({
-            status: 'success',
-            message: 'Payment Success',
-            data: req.body
-        });
+        // return res.status(200).json({
+        //     status: 'success',
+        //     message: 'Payment Success',
+        //     data: req.body
+        // });
     } catch (err) {
         busPool.query('ROLLBACK');
         console.log(err);
