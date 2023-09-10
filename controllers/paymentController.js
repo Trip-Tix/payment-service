@@ -147,6 +147,12 @@ const paymentSuccess = async (req, res) => {
             console.log('Bus schedule info updated to database');
         }
         busPool.query('COMMIT');
+
+        // Generate PDF here
+        // const pdf = await generatePdf(req.body);
+        // console.log('PDF generated');'
+
+
         return res.status(200).json({
             status: 'success',
             message: 'Payment Success',
