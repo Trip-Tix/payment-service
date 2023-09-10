@@ -1,6 +1,37 @@
 const SSLCommerzPayment = require("sslcommerz").SslCommerzPayment;
 const dotenv = require('dotenv');
 const busPool = require('../config/busDB');
+const accountPool = require('../config/accountDB');
+const { PDFDocument, rgb } = require('pdf-lib');
+// const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
+const { initializeApp } = require('firebase/app');
+const {getStorage, ref, uploadBytes, getDownloadURL} = require('firebase/storage');
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCDJi-2gcAPHMwulW3QqihYx2ziKIywuzs",
+    authDomain: "triptix-b957f.firebaseapp.com",
+    projectId: "triptix-b957f",
+    storageBucket: "triptix-b957f.appspot.com",
+    messagingSenderId: "901918179031",
+    appId: "1:901918179031:web:0809fd815e0ace043d3a92",
+    measurementId: "G-5X64R9L8SJ"
+  };
+
+const app = initializeApp(firebaseConfig);
+
+const storage = getStorage(app);
+
+const serviceAccount = require('../controllers/triptix-b957f-firebase-adminsdk-z2wyl-fd49cc0eaf.json');
+
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: 'triptix.sfz@gmail.com',
+      pass: 'geviigtztnzsfnbm', // Use an "App Password" if you have 2-Step Verification enabled
+    },
+  });
+
 dotenv.config();
 
 const store_id = process.env.STOREID
@@ -36,7 +67,7 @@ const paymentInit = async (req, res) => {
         total_amount: grandTotalFare,
         currency: 'BDT',
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/paymentSuccess/\\${busScheduleIds}/\\${ticketsIds}`,
+        success_url: `${mainUrl}/paymentSuccess/\\${busScheduleIds}/\\${ticketsIds}`,
         fail_url: `${mainUrl}/paymentFail`,
         cancel_url: `${mainUrl}/cancel`,
         ipn_url: `${mainUrl}/paymentIpn`,
@@ -145,12 +176,214 @@ const paymentSuccess = async (req, res) => {
             }
             await busPool.query(updateBusScheduleQuery);
             console.log('Bus schedule info updated to database');
+
+            // Generate ticket
+            const getTicketInfoQuery = {
+                text: `SELECT * FROM ticket_info WHERE ticket_id = $1`,
+                values: [ticketId]
+            }
+            const ticketInfo = await busPool.query(getTicketInfoQuery);
+            const ticketInfoData = ticketInfo.rows[0];
+            const numberOfTickets = ticketInfoData.number_of_tickets;
+            const totalFare = ticketInfoData.total_fare;
+            const passengerInfo = ticketInfoData.passenger_info;
+            const date = ticketInfoData.date;
+            const paymentStatus = ticketInfoData.payment_status;
+            const userId = ticketInfoData.user_id;
+            const getBusScheduleInfoQuery = {
+                text: `SELECT * FROM bus_schedule_info WHERE bus_schedule_id = $1`,
+                values: [busScheduleId]
+            }
+            const busScheduleInfo = await busPool.query(getBusScheduleInfoQuery);
+            const busScheduleInfoData = busScheduleInfo.rows[0];
+            const busId = busScheduleInfoData.bus_id;
+            const departureDate = busScheduleInfoData.schedule_date;
+            const departureTime = busScheduleInfoData.departure_time;
+            const arrivalDate = "";
+            const arrivalTime = "";
+            const departureLocation = busScheduleInfoData.starting_point;
+            const arrivalLocation = busScheduleInfoData.ending_point;
+            const fare = busScheduleInfoData.bus_fare;
+            // const getBusInfoQuery = {
+            //     text: `SELECT * FROM bus WHERE bus_id = $1`,
+            //     values: [busId]
+            // }
+            // const busInfo = await busPool.query(getBusInfoQuery);
+            // const busInfoData = busInfo.rows[0];
+            const busName = "busInfoData.bus_name";
+            const busType = "busInfoData.bus_type";
+            const busSeat = "busInfoData.bus_seat";
+            const busSeatInfo = "busInfoData.bus_seat_info";
+            const getPassengerInfoQuery = {
+                text: `SELECT * FROM passenger_info WHERE passenger_id = ANY($1)`,
+                values: [passengerInfo]
+            }
+            const passengerInfoData = await accountPool.query(getPassengerInfoQuery);
+            const passengerInfoArray = passengerInfoData.rows;
+            const passengerNameArray = [];
+            const passengerAgeArray = [];
+            const passengerGenderArray = [];
+            const passengerPhoneArray = [];
+            const passengerEmailArray = [];
+            for (let i = 0; i < passengerInfoArray.length; i++) {
+                // console.log(passengerInfoArray[i]);
+                passengerNameArray.push(passengerInfoArray[i].passenger_name);
+                passengerAgeArray.push(passengerInfoArray[i].passenger_age);
+                passengerGenderArray.push(passengerInfoArray[i].gender);
+                passengerPhoneArray.push(passengerInfoArray[i].passenger_mobile);
+                passengerEmailArray.push(passengerInfoArray[i].passenger_email);
+
+            }
+            const pdfDoc = await PDFDocument.create();
+            const page = pdfDoc.addPage([600, 800]);
+            // page.moveTo(0, page.getHeight() - 50);
+            // page.lineTo(page.getWidth(), page.getHeight() - 50);
+            // page.stroke();
+            // page.moveTo(0, page.getHeight() - 100);
+            // page.lineTo(page.getWidth(), page.getHeight() - 100);
+            // page.stroke();
+            // page.moveTo(0, page.getHeight() - 150);
+            // page.lineTo(page.getWidth(), page.getHeight() - 150);
+            // page.stroke();
+            // page.moveTo(0, page.getHeight() - 200);
+            // page.lineTo(page.getWidth(), page.getHeight() - 200);
+            // page.stroke();
+            // page.moveTo(0, page.getHeight() - 250);
+            // page.lineTo(page.getWidth(), page.getHeight() - 250);
+            // page.stroke();
+            // page.moveTo(0, page.getHeight() - 300);
+            // page.lineTo(page.getWidth(), page.getHeight() - 300);
+            // page.stroke();
+            
+            // Add content to the page
+            page.drawText('Ticket ID: ' + ticketId, {
+                x: 50,
+                y: page.getHeight() - 50,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Bus Name: ' + busName, {
+                x: 50,
+                y: page.getHeight() - 100,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Bus Type: ' + busType, {
+                x: 50,
+                y: page.getHeight() - 150,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Bus Seat: ' + busSeat, {
+                x: 50,
+                y: page.getHeight() - 200,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Bus Seat Info: ' + busSeatInfo, {
+                x: 50,
+                y: page.getHeight() - 250,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Departure Date: ' + departureDate, {
+                x: 50,
+                y: page.getHeight() - 300,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Departure Time: ' + departureTime, {
+                x: 50,
+                y: page.getHeight() - 350,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Arrival Date: ' + arrivalDate, {
+                x: 50,
+                y: page.getHeight() - 400,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Arrival Time: ' + arrivalTime, {
+                x: 50,
+                y: page.getHeight() - 450,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Departure Location: ' + departureLocation, {
+                x: 50,
+                y: page.getHeight() - 500,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Arrival Location: ' + arrivalLocation, {
+                x: 50,
+                y: page.getHeight() - 550,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Fare: ' + fare, {
+                x: 50,
+                y: page.getHeight() - 600,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Number of Tickets: ' + numberOfTickets, {
+                x: 50,
+                y: page.getHeight() - 650,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Total Fare: ' + totalFare, {
+                x: 50,
+                y: page.getHeight() - 700,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Passenger Name: ' + passengerNameArray, {
+                x: 50,
+                y: page.getHeight() - 750,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+            page.drawText('Passenger Age: ' + passengerAgeArray, {
+                x: 50,
+                y: page.getHeight() - 800,
+                size: 20,
+                color: rgb(0, 0.53, 0.71),
+            });
+
+            // Serialize the PDFDocument to bytes (a Uint8Array)
+            const pdfBytes = await pdfDoc.save();
+            const pdfBuffer = Buffer.from(pdfBytes.buffer);
+
+            // Save ticket to firebase storage
+            const mountainsRef = ref(storage, `${ticketId}.pdf`);
+            await uploadBytes(mountainsRef, pdfBuffer);
+
+            // Get ticket download url
+            const downloadURL = await getDownloadURL(ref(storage, `${ticketId}.pdf`));
+            console.log(downloadURL);
+
+            // Send ticket to user email
+            const mailOptions = {
+                from: 'triptix.sfz@gmail.com',
+                to: 'mahbubzeeon@gmail.com',
+                subject: 'Ticket',
+                text: 'Ticket',
+                attachments: [
+                    {
+                        filename: `${ticketId}.pdf`,
+                        path: `${downloadURL}`,
+                        contentType: 'application/pdf'
+                    }
+                ]
+            };
+            await transporter.sendMail(mailOptions);
+            console.log('Ticket sent to user email');
+
         }
         busPool.query('COMMIT');
-
-        // Generate PDF here
-        // const pdf = await generatePdf(req.body);
-        // console.log('PDF generated');'
 
 
         return res.status(200).json({
