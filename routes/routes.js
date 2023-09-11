@@ -7,5 +7,6 @@ const router = express.Router();
 router.post('/paymentInit', paymentController.paymentInit);
 router.post('/paymentSuccess', bodyParser, paymentController.paymentSuccess);
 router.post('/paymentFail', bodyParser, paymentController.paymentFail);
+router.get('/testPdf', paymentController.testPdf);
 
 module.exports = router;
