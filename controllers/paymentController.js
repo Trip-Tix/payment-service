@@ -396,7 +396,7 @@ const paymentSuccess = async (req, res) => {
                     });
 
                     // Draw text for the table cell
-                    page.drawText(rowData[j], {
+                    page.drawText(`${rowData[j]}`, {
                         x: tableX + colWidths.slice(0, j).reduce((acc, width) => acc + width, 0) + 5, // Adjust the padding
                         y: currentY + rowHeight / 2 - 6, // Center vertically
                         size: 10,
