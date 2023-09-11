@@ -224,13 +224,13 @@ const paymentSuccess = async (req, res) => {
 
             let passengerData = [];
 
-            for (let i = 0; i < passengerInfoArray.length; i++) {
+            for (let j = 0; j < passengerInfoArray.length; j++) {
                 let passenger = [];
-                const passengerId = passengerInfoArray[i].passenger_id;
-                passenger.push(passengerInfoArray[i].passenger_name);
-                passenger.push(passengerInfoArray[i].passenger_age);
-                passenger.push(passengerInfoArray[i].gender);
-                passenger.push(passengerInfoArray[i].passenger_mobile);
+                const passengerId = passengerInfoArray[j].passenger_id;
+                passenger.push(passengerInfoArray[j].passenger_name);
+                passenger.push(passengerInfoArray[j].passenger_age);
+                passenger.push(passengerInfoArray[j].gender);
+                passenger.push(passengerInfoArray[j].passenger_mobile);
 
                 const getSeatInfoQuery = {
                     text: `SELECT bus_seat_details.seat_name, bus_schedule_seat_info.bus_seat_id  
@@ -304,16 +304,16 @@ const paymentSuccess = async (req, res) => {
 
             startY -= lineSpacing;
 
-            let i = 0;
+            let k = 0;
             for (const line of textLines) {
                 page.drawText(line, {
                     x: 50,
                     y: startY,
                     size: 10,
-                    font: await pdfDoc.embedFont(i % 2 === 0 ? StandardFonts.HelveticaBold : StandardFonts.Helvetica),
+                    font: await pdfDoc.embedFont(k % 2 === 0 ? StandardFonts.HelveticaBold : StandardFonts.Helvetica),
                     color: rgb(0, 0, 0),
                 });
-                i++;
+                k++;
                 startY -= 15;
             }
         
@@ -330,16 +330,16 @@ const paymentSuccess = async (req, res) => {
                 `${uniqueBusId}`,
             ];
 
-            i = 0;
+            k = 0;
             for (const line2 of textLines2) {
                 page.drawText(line2, {
                     x: page.getWidth() - 150,
                     y: startY,
                     size: 10,
-                    font: await pdfDoc.embedFont(i % 2 === 0 ? StandardFonts.HelveticaBold : StandardFonts.Helvetica),
+                    font: await pdfDoc.embedFont(k % 2 === 0 ? StandardFonts.HelveticaBold : StandardFonts.Helvetica),
                     color: rgb(0, 0, 0),
                 });
-                i += 1
+                k += 1
                 startY -= 15;
             }
 
@@ -358,12 +358,12 @@ const paymentSuccess = async (req, res) => {
 
             // Draw the table header with background color and border
             let currentY = tableY;
-            for (let i = 0; i < tableHeader.length; i++) {
+            for (let j = 0; j < tableHeader.length; j++) {
                 // Draw background color rectangle for the table header cell
                 page.drawRectangle({
-                    x: tableX + colWidths.slice(0, i).reduce((acc, width) => acc + width, 0),
+                    x: tableX + colWidths.slice(0, j).reduce((acc, width) => acc + width, 0),
                     y: currentY,
-                    width: colWidths[i],
+                    width: colWidths[j],
                     height: rowHeight,
                     color: tableHeaderBackgroundColor,
                     borderColor: rgb(0.7, 0.7, 0.7),
@@ -371,8 +371,8 @@ const paymentSuccess = async (req, res) => {
                 });
 
                 // Draw text for the table header cell
-                page.drawText(tableHeader[i], {
-                    x: tableX + colWidths.slice(0, i).reduce((acc, width) => acc + width, 0) + 5, // Adjust the padding
+                page.drawText(tableHeader[j], {
+                    x: tableX + colWidths.slice(0, j).reduce((acc, width) => acc + width, 0) + 5, // Adjust the padding
                     y: currentY + rowHeight / 2 - 6, // Center vertically
                     size: 12,
                     font: await pdfDoc.embedFont(StandardFonts.Helvetica),
@@ -383,20 +383,20 @@ const paymentSuccess = async (req, res) => {
 
             // Draw the table rows with borders
             for (const rowData of passengerData) {
-                for (let i = 0; i < rowData.length; i++) {
+                for (let j = 0; j < rowData.length; j++) {
                     // Draw border rectangle for the table cell
                     page.drawRectangle({
-                        x: tableX + colWidths.slice(0, i).reduce((acc, width) => acc + width, 0),
+                        x: tableX + colWidths.slice(0, j).reduce((acc, width) => acc + width, 0),
                         y: currentY,
-                        width: colWidths[i],
+                        width: colWidths[j],
                         height: rowHeight,
                         borderColor: tableBorderColor,
                         borderWidth: 1,
                     });
 
                     // Draw text for the table cell
-                    page.drawText(rowData[i], {
-                        x: tableX + colWidths.slice(0, i).reduce((acc, width) => acc + width, 0) + 5, // Adjust the padding
+                    page.drawText(rowData[j], {
+                        x: tableX + colWidths.slice(0, j).reduce((acc, width) => acc + width, 0) + 5, // Adjust the padding
                         y: currentY + rowHeight / 2 - 6, // Center vertically
                         size: 10,
                         font: await pdfDoc.embedFont(StandardFonts.Helvetica),
