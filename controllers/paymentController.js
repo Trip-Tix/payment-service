@@ -581,7 +581,7 @@ const paymentSuccess = async (req, res) => {
             console.log(downloadURL);
 
             const updateTicketInfoQuery = {
-                text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2, transaction_id = $3, SET ticket_url = $4 WHERE ticket_id = $5`,
+                text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2, transaction_id = $3, ticket_url = $4 WHERE ticket_id = $5`,
                 values: [paymentMedium, 1, transactionId, downloadURL, ticketId]
             }
             await busPool.query(updateTicketInfoQuery);
