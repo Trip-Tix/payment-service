@@ -143,24 +143,6 @@ const paymentSuccess = async (req, res) => {
             const ticketId = ticketIdArray[i];
             const busScheduleId = busScheduleIdArray[i];
 
-            const updateTicketInfoQuery = {
-                text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2, transaction_id = $3 WHERE ticket_id = $4`,
-                values: [paymentMedium, 1, transactionId, ticketId]
-            }
-            await busPool.query(updateTicketInfoQuery);
-            console.log('Ticket info updated to database');
-
-            // Update bus schedule info
-            const updateBusScheduleQuery = {
-                text: `UPDATE bus_schedule_seat_info 
-                SET booked_status = 2 
-                WHERE bus_schedule_id = $1 
-                AND ticket_id = $2`,
-                values: [busScheduleId, ticketId]
-            }
-            await busPool.query(updateBusScheduleQuery);
-            console.log('Bus schedule info updated to database');
-
             // Generate ticket
             const getTicketInfoQuery = {
                 text: `SELECT * FROM ticket_info WHERE ticket_id = $1`,
@@ -175,6 +157,15 @@ const paymentSuccess = async (req, res) => {
             const userId = ticketInfoData.user_id;
             const source = ticketInfoData.source;
             const destination = ticketInfoData.destination;
+
+            // Get user email from user_info
+            const getUserEmailQuery = {
+                text: `SELECT email FROM user_info WHERE user_id = $1`,
+                values: [userId]
+            }
+            const userEmailQueryResult = await accountPool.query(getUserEmailQuery);
+            const userEmailData = userEmailQueryResult.rows[0];
+            const userEmail = userEmailData.email;
 
             const getBusScheduleInfoQuery = {
                 text: `SELECT * FROM bus_schedule_info WHERE bus_schedule_id = $1`,
@@ -195,7 +186,7 @@ const paymentSuccess = async (req, res) => {
             const busInfo = await busPool.query(getBusInfoQuery);
             const busInfoData = busInfo.rows[0];
 
-            const busServiceName = busInfoData.bus_service_name;
+            const busServiceName = busInfoData.bus_company_name;
 
             // Get coach name and brand name
             const busCoachDetailsQuery = {
@@ -230,7 +221,7 @@ const paymentSuccess = async (req, res) => {
                 const passengerId = passengerInfoArray[j].passenger_id;
                 passenger.push(passengerInfoArray[j].passenger_name);
                 passenger.push(passengerInfoArray[j].passenger_age);
-                passenger.push(passengerInfoArray[j].gender);
+                passenger.push(passengerInfoArray[j].passenger_gender);
                 passenger.push(passengerInfoArray[j].passenger_mobile);
 
                 const getSeatInfoQuery = {
@@ -589,10 +580,28 @@ const paymentSuccess = async (req, res) => {
             const downloadURL = await getDownloadURL(ref(storage, `${ticketId}.pdf`));
             console.log(downloadURL);
 
+            const updateTicketInfoQuery = {
+                text: `UPDATE ticket_info SET payment_medium = $1, payment_status = $2, transaction_id = $3, SET ticket_url = $4 WHERE ticket_id = $5`,
+                values: [paymentMedium, 1, transactionId, downloadURL, ticketId]
+            }
+            await busPool.query(updateTicketInfoQuery);
+            console.log('Ticket info updated to database');
+
+            // Update bus schedule info
+            const updateBusScheduleQuery = {
+                text: `UPDATE bus_schedule_seat_info 
+                SET booked_status = 2 
+                WHERE bus_schedule_id = $1 
+                AND ticket_id = $2`,
+                values: [busScheduleId, ticketId]
+            }
+            await busPool.query(updateBusScheduleQuery);
+            console.log('Bus schedule info updated to database');
+
             // Send ticket to user email
             const mailOptions = {
                 from: 'triptix.sfz@gmail.com',
-                to: 'mahbubzeeon@gmail.com',
+                to: userEmail,
                 subject: `${ticketId} Ticket`,
                 text: 'Here is your ticket. Enjoy your journey!',
                 attachments: [
