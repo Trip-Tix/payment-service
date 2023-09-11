@@ -202,7 +202,7 @@ const paymentSuccess = async (req, res) => {
                 text: `SELECT bus_coach_details.coach_id, 
                 bus_coach_details.brand_name_id,
                 coach_info.coach_name,
-                brand_name_info.brand_name, 
+                brand_name_info.brand_name  
                 FROM bus_coach_details 
                 INNER JOIN bus_coach_info ON bus_coach_details.coach_id = bus_coach_info.coach_id
                 INNER JOIN brand_name_info ON bus_coach_details.brand_name_id = brand_name_info.brand_name_id
