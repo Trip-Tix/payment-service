@@ -8,6 +8,6 @@ router.post('/paymentInit', paymentController.paymentInit);
 router.post('/paymentSuccess', bodyParser, paymentController.paymentSuccess);
 router.post('/paymentFail', bodyParser, paymentController.paymentFail);
 router.post('/paymentSuccessProfile', bodyParser, paymentController.paymentSuccessProfile);
-router.post('/api/paymentInitProfile', bodyParser, paymentController.paymentInitProfile);
+router.post('/paymentInitProfile', bodyParser, paymentController.paymentInitProfile);
 
 module.exports = router;
