@@ -249,7 +249,7 @@ const paymentSuccess = async (req, res) => {
             const departureDate = busScheduleInfoData.schedule_date;
             const departureTime = busScheduleInfoData.departure_time;
             const uniqueBusId = busScheduleInfoData.unique_bus_id;
-            const busFare = busScheduleInfoData.bus_fare;
+            const busFare = totalFare / passengerInfo.length;
 
             const getBusInfoQuery = {
                 text: `SELECT * FROM bus_services WHERE bus_id = $1`,
