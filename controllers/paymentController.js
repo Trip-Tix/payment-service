@@ -12,7 +12,7 @@ const path = require('path');
 dotenv.config();
 
 const firebaseConfig = {
-    apiKey: process.env.FIREBASAPIKEY,
+    apiKey: process.env.FIREBASEAPIKEY,
     authDomain: process.env.FIREBASEAUTHDOMAIN,
     projectId: process.env.FIREBASEPROJECTID,
     storageBucket: process.env.FIREBASESTORAGEBUCKET,
