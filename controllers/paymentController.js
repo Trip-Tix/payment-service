@@ -119,7 +119,7 @@ const paymentInit = async (req, res) => {
 
 //sslcommerz init
 const paymentInitProfile = async (req, res) => {
-    const { ticketId, totalFare, busScheduleId } = req.body;
+    const { ticketId, totalFare, scheduleId } = req.body;
 
     // Generate unique transaction ID of 20 characters length mixed with letters and numbers
     const transactionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -138,7 +138,7 @@ const paymentInitProfile = async (req, res) => {
         total_amount: grandTotalFare,
         currency: 'BDT',
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `${mainUrl}/paymentSuccessProfile/\\${busScheduleId}/\\${ticketId}`,
+        success_url: `${mainUrl}/paymentSuccessProfile/\\${scheduleId}/\\${ticketId}`,
         fail_url: `${mainUrl}/paymentFail`,
         cancel_url: `${mainUrl}/cancel`,
         ipn_url: `${mainUrl}/paymentIpn`,
