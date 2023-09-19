@@ -131,7 +131,7 @@ const paymentSuccessAir = async (req, res) => {
 
             // Get class name and brand name
             const airClassDetailsQuery = {
-                text: `SELECT class_name,
+                text: `SELECT class_name 
                 FROM class_info 
                 WHERE class_id = $1`,
                 values: [classId]
