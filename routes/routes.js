@@ -13,6 +13,7 @@ router.post('/paymentSuccessAir', bodyParser, paymentSuccessAir.paymentSuccessAi
 router.post('/paymentFail', bodyParser, paymentController.paymentFail);
 router.post('/paymentSuccessProfile', bodyParser, paymentController.paymentSuccessProfile);
 router.post('/paymentSuccessTrainProfile', bodyParser, paymentSuccessTrain.paymentSuccessTrainProfile);
+router.post('/paymentSuccessAirProfile', bodyParser, paymentSuccessAir.paymentSuccessAirProfile);
 router.post('/paymentInitProfile', bodyParser, paymentController.paymentInitProfile);
 
 module.exports = router;
