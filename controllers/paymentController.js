@@ -139,7 +139,7 @@ const paymentInit = async (req, res) => {
 
 //sslcommerz init
 const paymentInitProfile = async (req, res) => {
-    const { ticketId, totalFare, scheduleId } = req.body;
+    const { ticketId, totalFare, scheduleId, transportType } = req.body;
 
     // Generate unique transaction ID of 20 characters length mixed with letters and numbers
     const transactionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -154,11 +154,20 @@ const paymentInitProfile = async (req, res) => {
     // Get current date and time
     const dateTime = date + ' ' + time;
 
+    let successUrl = "";
+    if (transportType === 'bus') {
+        successUrl = `${mainUrl}/paymentSuccessProfile/\\${scheduleId}/\\${ticketId}`;
+    } else if (transportType === 'train') {
+        successUrl = `${mainUrl}/paymentSuccessTrainProfile/\\${scheduleId}/\\${ticketId}`;
+    } else if (transportType === 'air') {
+        successUrl = `${mainUrl}/paymentSuccessAirProfile/\\${scheduleId}/\\${ticketId}`;
+    }
+
     const data = {
         total_amount: totalFare,
         currency: 'BDT',
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `${mainUrl}/paymentSuccessProfile/\\${scheduleId}/\\${ticketId}`,
+        success_url: successUrl,
         fail_url: `${mainUrl}/paymentFail`,
         cancel_url: `${mainUrl}/cancel`,
         ipn_url: `${mainUrl}/paymentIpn`,

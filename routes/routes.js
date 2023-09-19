@@ -12,6 +12,7 @@ router.post('/paymentSuccessTrain', bodyParser, paymentSuccessTrain.paymentSucce
 router.post('/paymentSuccessAir', bodyParser, paymentSuccessAir.paymentSuccessAir);
 router.post('/paymentFail', bodyParser, paymentController.paymentFail);
 router.post('/paymentSuccessProfile', bodyParser, paymentController.paymentSuccessProfile);
+router.post('/paymentSuccessTrainProfile', bodyParser, paymentSuccessTrain.paymentSuccessTrainProfile);
 router.post('/paymentInitProfile', bodyParser, paymentController.paymentInitProfile);
 
 module.exports = router;
