@@ -130,7 +130,7 @@ const paymentSuccessTrain = async (req, res) => {
 
             // Get coach name and brand name
             const trainCoachDetailsQuery = {
-                text: `SELECT coach_name,
+                text: `SELECT coach_name 
                 FROM coach_info 
                 WHERE coach_id = $1`,
                 values: [coachId]
