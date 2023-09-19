@@ -1,6 +1,7 @@
 const SSLCommerzPayment = require("sslcommerz").SslCommerzPayment;
 const dotenv = require('dotenv');
 const busPool = require('../config/busDB');
+const trainPool = require('../config/trainDB');
 const accountPool = require('../config/accountDB');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const nodemailer = require('nodemailer');
@@ -41,7 +42,7 @@ const mainUrl = process.env.MAINURL
 
 //sslcommerz init
 const paymentInit = async (req, res) => {
-    const { ticketInfo, userId, grandTotalFare } = req.body;
+    const { ticketInfo, userId, grandTotalFare, transportType } = req.body;
 
     // Generate unique transaction ID of 20 characters length mixed with letters and numbers
     const transactionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -57,16 +58,35 @@ const paymentInit = async (req, res) => {
     const dateTime = date + ' ' + time;
     let ticketsIds = "";
     let busScheduleIds = "";
-    for (let i = 0; i < ticketInfo.length; i++) {
-        ticketsIds += ticketInfo[i].ticketId + '_';
-        busScheduleIds += ticketInfo[i].busScheduleId + '_';
+    let trainScheduleIds = "";
+    let airScheduleIds = "";
+    let successUrl = "";
+
+    if (transportType === 'bus') {
+        for (let i = 0; i < ticketInfo.length; i++) {
+            ticketsIds += ticketInfo[i].ticketId + '_';
+            busScheduleIds += ticketInfo[i].busScheduleId + '_';
+        }
+        successUrl = `${mainUrl}/paymentSuccess/\\${busScheduleIds}/\\${ticketsIds}`;
+    } else if (transportType === 'train') {
+        for (let i = 0; i < ticketInfo.length; i++) {
+            ticketsIds += ticketInfo[i].ticketId + '_';
+            trainScheduleIds += ticketInfo[i].trainScheduleId + '_';
+        }
+        successUrl = `${mainUrl}/paymentSuccessTrain/\\${trainScheduleIds}/\\${ticketsIds}`;
+    } else if (transportType === 'air') {
+        for (let i = 0; i < ticketInfo.length; i++) {
+            ticketsIds += ticketInfo[i].ticketId + '_';
+            airScheduleIds += ticketInfo[i].airScheduleId + '_';
+        }
+        successUrl = `${mainUrl}/paymentSuccessAir/\\${airScheduleIds}/\\${ticketsIds}`;
     }
 
     const data = {
         total_amount: grandTotalFare,
         currency: 'BDT',
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `${mainUrl}/paymentSuccess/\\${busScheduleIds}/\\${ticketsIds}`,
+        success_url: successUrl,
         fail_url: `${mainUrl}/paymentFail`,
         cancel_url: `${mainUrl}/cancel`,
         ipn_url: `${mainUrl}/paymentIpn`,
